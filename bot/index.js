@@ -234,6 +234,14 @@ function initBot() {
         await handleAutoToggle(bot, chatId, query.from.id, false);
         break;
 
+      case 'ai_auto_molt_enable':
+        await handleAutoMoltToggle(bot, chatId, query.from.id, true);
+        break;
+
+      case 'ai_auto_molt_disable':
+        await handleAutoMoltToggle(bot, chatId, query.from.id, false);
+        break;
+
       case 'ai_history':
         await handleAIHistory(bot, chatId, query.from.id);
         break;
@@ -873,7 +881,7 @@ async function handleAIPrediction(bot, chatId) {
       return;
     }
 
-    const evaluations = await aiService.evaluatePredictions(top5, String(chatId));
+    const evaluations = await aiService.evaluatePredictions(top5, String(chatId), true); // Manual flow always uses Moltbook if available
     
     // Store in userState for confirm flow
     userState[chatId] = { flow: 'ai_confirm', evaluations };
@@ -948,9 +956,11 @@ async function handleAutoConfig(bot, chatId, telegramUserId) {
   try {
     const settings = await autoTradingService.getSettings(telegramUserId);
     const statusText = settings.enabled ? '✅ Enabled' : '❌ Disabled';
+    const moltText = settings.useMoltbook ? '✅ Moltbook Context' : '❌ No Moltbook Context';
     
     let msg = `🤖 <b>Auto AI Trading Configuration</b>\n\n`;
     msg += `Status: <b>${statusText}</b>\n`;
+    msg += `Moltbook: <b>${moltText}</b>\n`;
     msg += `Frequency: <b>Every ${settings.intervalHours} hours</b>\n\n`;
     msg += `Select execution frequency below:`;
 
@@ -970,6 +980,11 @@ async function handleAutoConfig(bot, chatId, telegramUserId) {
             settings.enabled 
               ? { text: '❌ Disable Auto Trading', callback_data: 'ai_auto_disable' }
               : { text: '✅ Enable Auto Trading', callback_data: 'ai_auto_enable' }
+          ],
+          [
+            settings.useMoltbook
+              ? { text: '❌ Disable Moltbook AI', callback_data: 'ai_auto_molt_disable' }
+              : { text: '✅ Enable Moltbook AI', callback_data: 'ai_auto_molt_enable' }
           ],
           [{ text: '📜 View AI History', callback_data: 'ai_history' }]
         ]
@@ -1001,6 +1016,18 @@ async function handleAutoToggle(bot, chatId, telegramUserId, enabled) {
     await handleAutoConfig(bot, chatId, telegramUserId);
   } catch (err) {
     bot.sendMessage(chatId, `❌ Failed to toggle auto-trading: ${err.message}`);
+  }
+}
+
+async function handleAutoMoltToggle(bot, chatId, telegramUserId, enabled) {
+  try {
+    await autoTradingService.updateSettings(telegramUserId, { useMoltbook: enabled });
+    const action = enabled ? 'enabled' : 'disabled';
+    bot.answerCallbackQuery(userState.lastCallbackQueryId, { text: `✅ Moltbook AI ${action}` });
+    // Refresh config menu
+    await handleAutoConfig(bot, chatId, telegramUserId);
+  } catch (err) {
+    bot.sendMessage(chatId, `❌ Failed to toggle Moltbook AI: ${err.message}`);
   }
 }
 

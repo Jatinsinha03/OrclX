@@ -29,7 +29,7 @@ async function getSettings(telegramId) {
 /**
  * Update auto trading settings.
  */
-async function updateSettings(telegramId, { enabled, intervalHours }) {
+async function updateSettings(telegramId, { enabled, intervalHours, useMoltbook }) {
   const user = await prisma.user.findUnique({
     where: { telegramId: String(telegramId) },
   });
@@ -41,11 +41,13 @@ async function updateSettings(telegramId, { enabled, intervalHours }) {
     update: {
       enabled: enabled !== undefined ? enabled : undefined,
       intervalHours: intervalHours !== undefined ? intervalHours : undefined,
+      useMoltbook: useMoltbook !== undefined ? useMoltbook : undefined,
     },
     create: {
       userId: user.id,
       enabled: enabled || false,
       intervalHours: intervalHours || 2,
+      useMoltbook: useMoltbook || false,
     },
   });
 }

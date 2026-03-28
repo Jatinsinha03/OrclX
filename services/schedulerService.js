@@ -63,7 +63,7 @@ async function executeUserBets(settings) {
       return;
     }
 
-    const evaluations = await aiService.evaluatePredictions(activePredictions, telegramId);
+    const evaluations = await aiService.evaluatePredictions(activePredictions, telegramId, settings.useMoltbook);
     const amountStr = '10000000000000000'; // 0.01 MON (fixed stake)
 
     for (const ev of evaluations) {

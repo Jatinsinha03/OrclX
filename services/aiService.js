@@ -14,9 +14,10 @@ const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
  * Evaluates a list of predictions using Gemini with web search and Moltbook context.
  * @param {Array<object>} predictions - Array of prediction objects from DB
  * @param {string} [telegramId] - Optional Telegram user ID to fetch user-specific Moltbook news
+ * @param {boolean} [useMoltbook=false] - Whether to fetch and use Moltbook context
  * @returns {Promise<Array<object>>} Decisions with reasoning
  */
-async function evaluatePredictions(predictions, telegramId) {
+async function evaluatePredictions(predictions, telegramId, useMoltbook = false) {
   if (!config.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured.');
   }
@@ -26,9 +27,9 @@ async function evaluatePredictions(predictions, telegramId) {
     tools: [{ googleSearch: {} }] // Enable Google Search
   });
 
-  // Fetch Moltbook context if possible
+  // Fetch Moltbook context if requested and possible
   const contextMap = {};
-  if (telegramId) {
+  if (useMoltbook && telegramId) {
     try {
       const moltData = await moltbookService.getMoltbookApiKey(telegramId);
       if (moltData?.moltbookApiKey) {

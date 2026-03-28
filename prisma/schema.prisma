@@ -83,6 +83,7 @@ model AutoTradingSettings {
   id            String   @id @default(uuid())
   userId        String   @unique @map("user_id")
   enabled       Boolean  @default(false)
+  useMoltbook   Boolean  @default(false) @map("use_moltbook")
   intervalHours Int      @default(2) @map("interval_hours")
   lastRunAt     DateTime? @map("last_run_at")
   createdAt     DateTime @default(now()) @map("created_at")
