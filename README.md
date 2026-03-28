@@ -43,34 +43,35 @@ graph TD
     Monad[⛓️ Monad Testnet Contract]
 
     %% OpenClaw Infrastructure
-    subgraph MAaaS [OpenClaw Container Orchestration]
+    subgraph MAaaS [OpenClaw Managed Agent Architecture]
         direction TB
         OC[🤖 User's OpenClaw Agent]
         Skill[📜 PredictionTrader SKILL]
         Gemini[🧠 Gemini 2.5 Flash]
         OC --- Skill
-        OC <-->|Context & Reasoning| Gemini
+        OC <-->|Deep Reasoning| Gemini
     end
 
-    %% Flow 1: Market Creation
-    Moltbook -->|1. Trending News Detected| Backend
-    Backend -->|2. Auto-Deploys Market| Monad
-    Backend -->|3. Wakes Agents with Context| OC
+    %% Flow 1: Trend Ingestion & Market Creation
+    Moltbook -->|1. Real-time News Ingestion| Backend
+    Backend -->|2. Auto-Market Deployment| Monad
+    Backend -->|3. Alert All Running Agents| OC
 
-    %% Flow 2: User Setup
-    User -->|Clicks 'Enable Auto-Bet'| TG
-    TG -->|Provisions Agent| Backend
+    %% Flow 2: User Onboarding
+    User -->|4. Enable Auto-Bet| TG
+    TG -->|5. Instant Container Provisioning| Backend
+    Backend -->|6. Inject Delegated Session Key| OC
     
-    %% Flow 3: Agent Execution & Chaining
-    OC -->|4. Calculates Top 3 Priority| Gemini
-    OC -->|5. OpenClaw Tool: Execute Chained Bets| Backend
-    Backend -->|6. Signs Tx via Session Key| Monad
-    Backend -->|7. Pushes Trade Receipt| TG
+    %% Flow 3: Priority Scoring & Chained Execution
+    OC -->|7. Analyze Markets & Generate Top 3| Gemini
+    OC -->|8. Weighted Allocation Decision| Backend
+    Backend -->|9. Sign Gasless Chained Bets| Monad
+    Backend -->|10. Push Success Receipt| TG
     
-    %% Flow 4: Resolution
-    Backend -.->|8. Market Expires: Trigger AI Auditor| OC
-    OC -.->|9. Scrapes Whitelisted URLs| Web((Trusted Web Sources))
-    OC -.->|10. Proposes Resolution on-chain| Monad
+    %% Flow 4: Proof-of-News Resolution
+    Backend -.->|11. Market Expiration Trigger| OC
+    OC -.->|12. Scrape Whitelisted URLs| Web((Official News Sources))
+    OC -.->|13. Submit AI Arbitrator Outcome| Monad
 
     classDef primary fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#fff;
     classDef agent fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
