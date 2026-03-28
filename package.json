@@ -1,0 +1,12 @@
+{
+  "name": "orclx",
+  "version": "1.0.0",
+  "description": "1. Visit the `monad-blitz-delhi` repo (link [here](https://github.com/monad-developers/monad-blitz-delhi)) and fork it.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
