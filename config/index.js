@@ -21,6 +21,12 @@ module.exports = {
   // Smart Contract
   CONTRACT_ADDRESS: process.env.CONTRACT_ADDRESS,
 
+  // Moltbook
+  MOLTBOOK_BASE_URL: process.env.MOLTBOOK_BASE_URL || 'https://www.moltbook.com/api/v1',
+
+  // Gemini
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+
   // Server
   PORT: parseInt(process.env.PORT || '3000', 10),
 };

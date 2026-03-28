@@ -8,7 +8,10 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const config = require('./config');
 const predictionRoutes = require('./routes/predictionRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+const aiAutoRoutes = require('./routes/aiAutoRoutes');
 const { initBot } = require('./bot');
+const { initScheduler } = require('./services/schedulerService');
 
 const app = express();
 
@@ -28,6 +31,7 @@ app.get('/', (req, res) => {
 
 // ─── API Routes ─────────────────────────────────────────────────────
 app.use('/', predictionRoutes);
+app.use('/', aiRoutes);
 
 // ─── Start Server & Bot ─────────────────────────────────────────────
 app.listen(config.PORT, () => {
@@ -37,4 +41,7 @@ app.listen(config.PORT, () => {
 
   // Start Telegram bot
   initBot();
+
+  // Initialize Auto-Trading Scheduler
+  initScheduler();
 });

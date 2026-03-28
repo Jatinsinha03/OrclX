@@ -16,8 +16,15 @@ model User {
   walletAddress String?  @map("wallet_address")
   createdAt     DateTime @default(now()) @map("created_at")
 
+  // Moltbook Integration
+  moltbookApiKey   String?  @map("moltbook_api_key")
+  moltbookClaimUrl String?  @map("moltbook_claim_url")
+  moltbookVerified Boolean  @default(false) @map("moltbook_verified")
+
   bets         Bet[]
   transactions Transaction[]
+  autoTrading  AutoTradingSettings?
+  aiBetHistory AIBetHistory[]
 
   @@map("users")
 }
@@ -69,4 +76,32 @@ model Transaction {
   user User @relation(fields: [userId], references: [id])
 
   @@map("transactions")
+}
+
+// ─── Auto Trading ───────────────────────────────────────────────────
+model AutoTradingSettings {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  enabled       Boolean  @default(false)
+  intervalHours Int      @default(2) @map("interval_hours")
+  lastRunAt     DateTime? @map("last_run_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("auto_trading_settings")
+}
+
+model AIBetHistory {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  predictionId Int      @map("prediction_id") // onchain_id
+  decision     String   // "YES" | "NO"
+  amount       String   // wei string
+  txHash       String   @map("tx_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("ai_bet_history")
 }
