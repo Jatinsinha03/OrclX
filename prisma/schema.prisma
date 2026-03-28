@@ -1,0 +1,72 @@
+// OrclX – Prisma Schema
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Users ───────────────────────────────────────────────────────────
+model User {
+  id            String   @id @default(uuid())
+  telegramId    String   @unique @map("telegram_id")
+  walletAddress String?  @map("wallet_address")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  bets         Bet[]
+  transactions Transaction[]
+
+  @@map("users")
+}
+
+// ─── Predictions ─────────────────────────────────────────────────────
+model Prediction {
+  id             String   @id @default(uuid())
+  onchainId      Int?     @unique @map("onchain_id")
+  question       String
+  stake          String   // stored as wei string
+  creatorAddress String   @map("creator_address")
+  tags           String[] @default([])
+  resolved       Boolean  @default(false)
+  result         String?  // "Yes" | "No" | null
+  txHash         String?  @map("tx_hash")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  bets Bet[]
+
+  @@map("predictions")
+}
+
+// ─── Bets ────────────────────────────────────────────────────────────
+model Bet {
+  id           String   @id @default(uuid())
+  predictionId String   @map("prediction_id")
+  userId       String   @map("user_id")
+  isYes        Boolean  @map("is_yes")
+  amount       String   // stored as wei string
+  txHash       String?  @map("tx_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  prediction Prediction @relation(fields: [predictionId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@map("bets")
+}
+
+// ─── Transactions ────────────────────────────────────────────────────
+model Transaction {
+  id          String   @id @default(uuid())
+  txHash      String?  @map("tx_hash")
+  type        String   // "create" | "bet" | "branch" | "claim"
+  status      String   @default("pending") // "pending" | "success" | "fail"
+  userId      String   @map("user_id")
+  data        Json?    // arbitrary payload
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+}

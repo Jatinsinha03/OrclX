@@ -4,12 +4,15 @@
   "description": "1. Visit the `monad-blitz-delhi` repo (link [here](https://github.com/monad-developers/monad-blitz-delhi)) and fork it.",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -17,6 +20,7 @@
     "express": "^5.2.1",
     "node-telegram-bot-api": "^0.67.0",
     "pg": "^8.20.0",
+    "prisma": "^7.6.0",
     "uuid": "^13.0.0"
   }
 }
