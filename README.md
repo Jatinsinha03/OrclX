@@ -85,9 +85,20 @@ graph TD
 ## 🛠 Technology Stack
 
 - **Blockchain**: Monad Testnet, Solidity, ethers.js (Chosen for extreme TPS required by multi-agent micro-transactions)
-- **Agent Framework**: OpenClaw (Self-hosted, Dockerized MAaaS)
+- **Agent Framework**: OpenClaw
 - **AI/LLM**: Google Gemini 2.5 Flash SDK (For high-speed, low-latency reasoning)
 - **Social & News Trigger**: Moltbook API (Trend ingestion & sentiment)
 - **Backend Orchestration**: Node.js, Express.js, node-cron
 - **Database**: PostgreSQL with Prisma ORM
-- **Interface**: Telegram Bot API 
+- **Interface**: Telegram Bot API
+
+## Images
+<img width="582" height="241" alt="Screenshot 2026-03-28 at 6 03 29 PM" src="https://github.com/user-attachments/assets/e24ddd56-28f7-492a-98af-b1f194053373" />
+<img width="1206" height="571" alt="Screenshot 2026-03-28 at 6 03 24 PM" src="https://github.com/user-attachments/assets/041ffaa6-0a51-43da-a394-6376a2d54f77" />
+<img width="322" height="78" alt="Screenshot 2026-03-28 at 5 57 16 PM" src="https://github.com/user-attachments/assets/07c0ee12-6cd6-4747-a494-d0528c11e7a0" />
+<img width="698" height="282" alt="Screenshot 2026-03-28 at 5 57 07 PM" src="https://github.com/user-attachments/assets/55eb74f4-fc81-4be0-b48f-2309223c132a" />
+<img width="772" height="571" alt="Screenshot 2026-03-28 at 5 48 32 PM" src="https://github.com/user-attachments/assets/afdb54a0-e26e-427d-bfad-c936604fd013" />
+<img width="772" height="393" alt="Screenshot 2026-03-28 at 5 44 12 PM" src="https://github.com/user-attachments/assets/5f691d69-d1e5-49e5-9ce2-161e3ef68583" />
+<img width="771" height="518" alt="Screenshot 2026-03-28 at 5 36 18 PM" src="https://github.com/user-attachments/assets/f667d57f-32cc-414a-9534-4415bc728e4e" />
+<img width="819" height="690" alt="Screenshot 2026-03-28 at 5 35 44 PM" src="https://github.com/user-attachments/assets/bf286f4a-dabb-4517-a3f2-b06814648cf3" />
+
