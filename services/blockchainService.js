@@ -122,6 +122,7 @@ async function getPrediction(id) {
     totalYes: p.totalYes.toString(),
     totalNo: p.totalNo.toString(),
     createdAt: Number(p.createdAt),
+    participants: p.participants,
   };
 }
 
@@ -157,6 +158,18 @@ async function settleResolution(predictionId) {
 }
 
 /**
+ * Admin: Resolve and distribute winnings via AI verification.
+ * @param {number} predictionId - On-chain prediction ID
+ * @param {boolean} outcome - Final outcome (true=YES, false=NO)
+ */
+async function adminResolveAndDistribute(predictionId, outcome) {
+  const contract = getContract();
+  const tx = await contract.adminResolveAndDistribute(predictionId, outcome);
+  const receipt = await tx.wait();
+  return { tx, receipt };
+}
+
+/**
  * Get the relayer wallet address.
  */
 function getWalletAddress() {
@@ -175,5 +188,6 @@ module.exports = {
   getPredictionCount,
   requestResolution,
   settleResolution,
+  adminResolveAndDistribute,
   getWalletAddress,
 };

@@ -31,10 +31,23 @@ contract PredictionChaining {
         uint256 totalNo;
         uint256 createdAt;
         string[] tags;
+        address[] participants;
     }
 
+    address public owner;
     IOptimisticOracle public oo;
     bytes32 public constant IDENTIFIER = keccak256("YES_OR_NO_QUERY");
+
+    mapping(uint256 => mapping(address => bool)) public hasBet;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
 
     uint256 public predictionCount;
 
@@ -85,6 +98,11 @@ contract PredictionChaining {
             p.totalYes += msg.value;
         } else {
             p.totalNo += msg.value;
+        }
+
+        if (!hasBet[id][msg.sender]) {
+            p.participants.push(msg.sender);
+            hasBet[id][msg.sender] = true;
         }
     }
 
@@ -199,5 +217,34 @@ contract PredictionChaining {
 
         p.result = outcome == 1 ? Outcome.Yes : Outcome.No;
         p.resolved = true;
+    }
+
+    // ---------------- ADMIN RESOLUTION & AUTO-PAYOUT ----------------
+
+    function adminResolveAndDistribute(uint256 id, bool outcome) external onlyOwner {
+        require(id > 0 && id <= predictionCount, "Invalid ID");
+        Prediction storage p = predictions[id];
+        require(!p.resolved, "Already resolved");
+
+        p.result = outcome ? Outcome.Yes : Outcome.No;
+        p.resolved = true;
+
+        uint256 pool = p.totalYes + p.totalNo;
+        uint256 winPool = outcome ? p.totalYes : p.totalNo;
+
+        if (winPool == 0) return; // No winners to pay
+
+        for (uint256 i = 0; i < p.participants.length; i++) {
+            address user = p.participants[i];
+            uint256 userBet = bets[user][id][outcome];
+
+            if (userBet > 0) {
+                uint256 payout = (userBet * pool) / winPool;
+                bets[user][id][true] = 0;
+                bets[user][id][false] = 0;
+                userExposure[user][id] = 0;
+                payable(user).transfer(payout);
+            }
+        }
     }
 }

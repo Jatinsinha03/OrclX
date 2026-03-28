@@ -12,6 +12,7 @@ const moltbookService = require('../services/moltbookService');
 const aiService = require('../services/aiService');
 const autoTradingService = require('../services/autoTradingService');
 const historyService = require('../services/historyService');
+const resolutionService = require('../services/resolutionService');
 
 // ─── State management for multi-step flows ──────────────────────────
 // Keyed by chatId, stores the current flow and step data
@@ -71,6 +72,7 @@ function initBot() {
             [{ text: '🔮 Gemini + Moltbook AI', callback_data: 'ai_prediction' }],
             [{ text: '🤖 Auto AI Trading', callback_data: 'ai_auto_config' }],
             [{ text: '📜 AI Bet History', callback_data: 'ai_history' }],
+            [{ text: '⚖ AI Auto-Resolve', callback_data: 'ai_resolve_scan' }],
             [moltButton],
             [{ text: '🏆 Claim Winnings', callback_data: 'claim_winnings' }],
           ],
@@ -240,6 +242,10 @@ function initBot() {
 
       case 'ai_auto_molt_disable':
         await handleAutoMoltToggle(bot, chatId, query.from.id, false);
+        break;
+
+      case 'ai_resolve_scan':
+        await handleAIResolveScan(bot, chatId);
         break;
 
       case 'ai_history':
@@ -1055,6 +1061,34 @@ async function handleAIHistory(bot, chatId, telegramUserId) {
   } catch (err) {
     console.error(`❌ [AI History] Error:`, err.message);
     bot.sendMessage(chatId, `❌ Failed to fetch AI history: ${err.message}`);
+  }
+}
+
+async function handleAIResolveScan(bot, chatId) {
+  try {
+    bot.sendMessage(chatId, `⚖️ <b>Scanning Finished Predictions...</b>\n\nAI is checking Google Search to verify real-world outcomes. This may take a few seconds.`, { parse_mode: 'HTML' });
+
+    const results = await resolutionService.runAutoResolution();
+
+    if (results.length === 0) {
+      bot.sendMessage(chatId, `✅ <b>Scan Complete.</b>\nNo predictions are ready for resolution yet.`);
+      return;
+    }
+
+    let msg = `🎉 <b>${results.length} Predictions Resolved!</b>\n\nWinnings have been distributed on-chain.\n\n`;
+
+    for (const res of results) {
+      msg += `🔹 <b>${res.question}</b>\n`;
+      msg += `Outcome: <b>${res.outcome}</b>\n`;
+      msg += `AI Reasoning: <i>${res.reasoning}</i>\n`;
+      msg += `TX: <a href="https://testnet.monadexplorer.com/tx/${res.txHash}">View Hash</a>\n\n`;
+    }
+
+    bot.sendMessage(chatId, msg, { parse_mode: 'HTML', disable_web_page_preview: true });
+
+  } catch (err) {
+    console.error('❌ AI Resolve Scan failed:', err.message);
+    bot.sendMessage(chatId, `❌ AI Resolution failed: ${err.message}`);
   }
 }
 

@@ -8,6 +8,7 @@ const autoTradingService = require('./autoTradingService');
 const aiService = require('./aiService');
 const predictionService = require('./predictionService');
 const historyService = require('./historyService');
+const resolutionService = require('./resolutionService');
 
 /**
  * Initialize the cron scheduler.
@@ -20,6 +21,16 @@ function initScheduler() {
   cron.schedule('*/15 * * * *', async () => {
     console.log('⏰ [Scheduler] Running auto-trading cycle...');
     await processAutoTrading();
+  });
+
+  console.log('⏰ [Scheduler] Initializing AI auto-resolution cron job...');
+  // Every day at midnight
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      await resolutionService.runAutoResolution();
+    } catch (err) {
+      console.error('❌ [Scheduler] AI Resolution failed:', err.message);
+    }
   });
 }
 
