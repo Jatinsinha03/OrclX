@@ -56,8 +56,15 @@ async function createPrediction(question, stakeWei, tags, telegramId) {
     const onchainId = await blockchain.getPredictionCount();
 
     // Persist prediction
-    const prediction = await prisma.prediction.create({
-      data: {
+    const prediction = await prisma.prediction.upsert({
+      where: { onchainId },
+      update: {
+        txHash: tx.hash, // Link the latest hash
+        question,
+        stake: stakeWei,
+        tags,
+      },
+      create: {
         onchainId,
         question,
         stake: stakeWei,

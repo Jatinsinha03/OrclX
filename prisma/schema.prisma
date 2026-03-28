@@ -25,6 +25,7 @@ model User {
   transactions Transaction[]
   autoTrading  AutoTradingSettings?
   aiBetHistory AIBetHistory[]
+  agents       Agent[]
 
   @@map("users")
 }
@@ -105,4 +106,17 @@ model AIBetHistory {
   user User @relation(fields: [userId], references: [id])
 
   @@map("ai_bet_history")
+}
+
+model Agent {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  containerId String?  @map("container_id")
+  status      String   @default("stopped") // running, stopped
+  sessionKey  String?  @map("session_key")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("agents")
 }

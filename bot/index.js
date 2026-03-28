@@ -13,6 +13,8 @@ const aiService = require('../services/aiService');
 const autoTradingService = require('../services/autoTradingService');
 const historyService = require('../services/historyService');
 const resolutionService = require('../services/resolutionService');
+const agentManager = require('../services/agentManager');
+const prisma = require('../db/prisma');
 
 // ─── State management for multi-step flows ──────────────────────────
 // Keyed by chatId, stores the current flow and step data
@@ -22,10 +24,12 @@ function clearState(chatId) {
   delete userState[chatId];
 }
 
-// ─── Bot Initialization ─────────────────────────────────────────────
+let botInstance;
 
 function initBot() {
+  if (botInstance) return botInstance;
   const bot = new TelegramBot(config.TELEGRAM_BOT_TOKEN, { polling: true });
+  botInstance = bot;
 
   console.log('🤖 Telegram bot started (polling)');
 
@@ -42,39 +46,41 @@ function initBot() {
   bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     console.log(`📩 [/start] from user ${msg.from.id} in chat ${chatId}`);
+    console.log(`[/start] from user ${msg.from.id} in chat ${chatId}`);
     clearState(chatId);
 
     try {
       // Check Moltbook status
       const moltData = await moltbookService.getMoltbookApiKey(String(msg.from.id));
       const moltStatusText = moltData?.moltbookApiKey 
-        ? (moltData.moltbookVerified ? '✅ Moltbook: Verified' : '⏳ Moltbook: Pending')
-        : '❌ Moltbook: Not Connected';
+        ? (moltData.moltbookVerified ? 'Moltbook: Verified' : 'Moltbook: Pending')
+        : 'Moltbook: Not Connected';
 
       let moltButton;
       if (!moltData?.moltbookApiKey) {
-        moltButton = { text: '🔗 Connect Moltbook', callback_data: 'moltbook_connect_help' };
+        moltButton = { text: 'Connect Moltbook', callback_data: 'moltbook_connect_help' };
       } else if (!moltData.moltbookVerified) {
-        moltButton = { text: '✅ Verify Moltbook Agent', callback_data: 'moltbook_verify' };
+        moltButton = { text: 'Verify Moltbook Agent', callback_data: 'moltbook_verify' };
       } else {
-        moltButton = { text: '✅ Moltbook: Verified', callback_data: 'moltbook_status' };
+        moltButton = { text: 'Moltbook: Verified', callback_data: 'moltbook_status' };
       }
 
-      await bot.sendMessage(chatId, `🔮 *Welcome to OrclX – Prediction Market*\n\nYour status:\n${moltStatusText}\n\nChoose an action:`, {
+      await bot.sendMessage(chatId, `*Welcome to OrclX – Prediction Market*\n\nYour status:\n${moltStatusText}\n\nChoose an action:`, {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '🎲 Create Bet', callback_data: 'create_bet' }],
-            [{ text: '💰 Place Bet', callback_data: 'place_bet' }],
-            [{ text: '🔗 Chain Prediction', callback_data: 'chain_prediction' }],
-            [{ text: '📋 View Predictions', callback_data: 'view_predictions' }],
-            [{ text: '📂 My Bets', callback_data: 'my_bets' }],
-            [{ text: '🔮 Gemini + Moltbook AI', callback_data: 'ai_prediction' }],
-            [{ text: '🤖 Auto AI Trading', callback_data: 'ai_auto_config' }],
-            [{ text: '📜 AI Bet History', callback_data: 'ai_history' }],
-            [{ text: '⚖ AI Auto-Resolve', callback_data: 'ai_resolve_scan' }],
+            [{ text: 'Create Bet', callback_data: 'create_bet' }],
+            [{ text: 'Place Bet', callback_data: 'place_bet' }],
+            [{ text: 'Chain Prediction', callback_data: 'chain_prediction' }],
+            [{ text: 'View Predictions', callback_data: 'view_predictions' }],
+            [{ text: 'My Bets', callback_data: 'my_bets' }],
+            [{ text: 'Gemini + Moltbook AI', callback_data: 'ai_prediction' }],
+            [{ text: 'Auto AI Trading', callback_data: 'ai_auto_config' }],
+            [{ text: 'AI Bet History', callback_data: 'ai_history' }],
+            [{ text: 'AI Auto-Resolve', callback_data: 'ai_resolve_scan' }],
+            [{ text: '🚀 OpenClaw Agent', callback_data: 'agent_provision' }],
+            [{ text: '⚡ Run Agent Now', callback_data: 'agent_run_now' }],
             [moltButton],
-            [{ text: '🏆 Claim Winnings', callback_data: 'claim_winnings' }],
           ],
         },
       });
@@ -110,10 +116,10 @@ function initBot() {
 
       bot.sendMessage(
         chatId,
-        `✅ <b>Agent Registered on Moltbook!</b>\n\n` +
-          `🤖 Name: ${agentName}\n\n` +
-          `🔗 <b>To verify:</b>\n1. Tap the 🐦 button below to tweet your verification link.\n` +
-          `2. Once tweeted, tap the ✅ button to confirm.\n\n` +
+        `<b>Agent Registered on Moltbook!</b>\n\n` +
+          `Name: ${agentName}\n\n` +
+          `<b>To verify:</b>\n1. Tap the button below to tweet your verification link.\n` +
+          `2. Once tweeted, tap the button to confirm.\n\n` +
           `Or manually tweet this link:\n<code>${escapedUrl}</code>`,
         { 
           parse_mode: 'HTML',
@@ -150,7 +156,7 @@ function initBot() {
       // ── Create Bet Flow ──
       case 'create_bet':
         userState[chatId] = { flow: 'create_bet', step: 'question' };
-        bot.sendMessage(chatId, '📝 *Create a New Prediction*\n\nEnter the prediction question:', {
+        bot.sendMessage(chatId, 'Create a New Prediction\n\nEnter the prediction question:', {
           parse_mode: 'Markdown',
         });
         break;
@@ -158,7 +164,7 @@ function initBot() {
       // ── Place Bet Flow ──
       case 'place_bet':
         userState[chatId] = { flow: 'place_bet', step: 'id' };
-        bot.sendMessage(chatId, '💰 *Place a Bet*\n\nEnter the prediction ID (on-chain):', {
+        bot.sendMessage(chatId, 'Place a Bet\n\nEnter the prediction ID (on-chain):', {
           parse_mode: 'Markdown',
         });
         break;
@@ -248,6 +254,17 @@ function initBot() {
         await handleAIResolveScan(bot, chatId);
         break;
 
+      case 'agent_provision':
+        await handleAgentProvision(bot, chatId, query.from.id);
+        break;
+
+      case 'agent_run_now':
+        await bot.sendMessage(chatId, `🚀 <b>Triggering OpenClaw...</b>\n\nAnalyzing top markets. Watch your Docker logs!`, { parse_mode: 'HTML' });
+        const userSettings = await autoTradingService.getSettings(query.from.id);
+        const scheduler = require('../services/schedulerService');
+        await scheduler.executeUserBets(userSettings);
+        break;
+
       case 'ai_history':
         await handleAIHistory(bot, chatId, query.from.id);
         break;
@@ -274,6 +291,11 @@ function initBot() {
           const onchainId = parseInt(data.split('_')[1], 10);
           if (!isNaN(onchainId)) {
             await handleRelatedNews(bot, chatId, onchainId, query.from.id);
+          }
+        } else if (data && data.startsWith('ai_resolve_single_')) {
+          const onchainId = parseInt(data.split('_')[3], 10);
+          if (!isNaN(onchainId)) {
+            await handleAIResolveSingle(bot, chatId, onchainId);
           }
         } else if (data && data.startsWith('ai_auto_freq_')) {
           const hours = parseInt(data.split('_')[3], 10);
@@ -412,11 +434,11 @@ async function handlePlaceBetFlow(bot, chatId, text, telegramUserId) {
             reply_markup: {
               inline_keyboard: [
                 [
-                  { text: '👍 YES', callback_data: 'bet_yes' },
-                  { text: '👎 NO', callback_data: 'bet_no' },
+                  { text: 'YES', callback_data: 'bet_yes' },
+                  { text: 'NO', callback_data: 'bet_no' },
                 ],
                 [
-                  { text: '📰 Related News', callback_data: `news_${id}` },
+                  { text: 'Related News', callback_data: `news_${id}` },
                 ],
               ],
             },
@@ -489,8 +511,8 @@ async function handleChainPredictionFlow(bot, chatId, text) {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '👍 YES', callback_data: 'chain_yes' },
-              { text: '👎 NO', callback_data: 'chain_no' },
+              { text: 'YES', callback_data: 'chain_yes' },
+              { text: 'NO', callback_data: 'chain_no' },
             ],
           ],
         },
@@ -590,14 +612,14 @@ async function handleViewPredictions(bot, chatId) {
 
     const { formatEther } = require('ethers');
 
-    let message = '📋 *Active Predictions*\n\n';
+    let message = '*Active Predictions*\n\n';
     for (const p of predictions.slice(0, 10)) {
-      const status = p.resolved ? (p.result === 'Yes' ? '✅ YES' : '❌ NO') : '⏳ Pending';
+      const status = p.resolved ? (p.result === 'Yes' ? 'YES' : 'NO') : 'Pending';
       message +=
         `*#${p.onchainId || '?'}* – ${p.question}\n` +
-        `   💎 Stake: ${formatEther(p.stake)} MON | Status: ${status}\n` +
-        `   👍 YES: ${formatEther(p.bets.filter((b) => b.isYes).reduce((s, b) => s + BigInt(b.amount), 0n).toString())} | ` +
-        `👎 NO: ${formatEther(p.bets.filter((b) => !b.isYes).reduce((s, b) => s + BigInt(b.amount), 0n).toString())}\n\n`;
+        `   Stake: ${formatEther(p.stake)} MON | Status: ${status}\n` +
+        `   YES: ${formatEther(p.bets.filter((b) => b.isYes).reduce((s, b) => s + BigInt(b.amount), 0n).toString())} | ` +
+        `NO: ${formatEther(p.bets.filter((b) => !b.isYes).reduce((s, b) => s + BigInt(b.amount), 0n).toString())}\n\n`;
     }
 
     bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -624,25 +646,22 @@ async function handleMyBets(bot, chatId, telegramUserId) {
     const { formatEther } = require('ethers');
 
     for (const p of predictions.slice(0, 10)) {
-      const status = p.resolved ? (p.result === 'Yes' ? '✅ YES' : '❌ NO') : '⏳ Pending';
+      const status = p.resolved ? (p.result === 'Yes' ? 'YES' : 'NO') : 'Pending';
       const totalBets = p.bets.length;
 
       let text =
-        `📌 *Prediction #${p.onchainId || '?'}*\n` +
-        `❓ ${p.question}\n` +
-        `💎 Stake: ${formatEther(p.stake)} MON\n` +
-        `🎯 Status: ${status}\n` +
-        `👥 Total Bets: ${totalBets}`;
+        `*Prediction #${p.onchainId || '?'}*\n` +
+        `Question: ${p.question}\n` +
+        `Stake: ${formatEther(p.stake)} MON\n` +
+        `Status: ${status}\n` +
+        `Total Bets: ${totalBets}`;
 
       const buttons = [];
 
       // Show Resolve button only for unresolved predictions
       if (!p.resolved && p.onchainId) {
         buttons.push([
-          { text: '⚖️ Request Resolution', callback_data: `resolve_${p.onchainId}` },
-        ]);
-        buttons.push([
-          { text: '✅ Settle Resolution', callback_data: `settle_${p.onchainId}` },
+          { text: 'AI Auto-Resolve', callback_data: `ai_resolve_single_${p.onchainId}` },
         ]);
       }
 
@@ -1066,19 +1085,19 @@ async function handleAIHistory(bot, chatId, telegramUserId) {
 
 async function handleAIResolveScan(bot, chatId) {
   try {
-    bot.sendMessage(chatId, `⚖️ <b>Scanning Finished Predictions...</b>\n\nAI is checking Google Search to verify real-world outcomes. This may take a few seconds.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `<b>Scanning Finished Predictions...</b>\n\nAI is checking Google Search to verify real-world outcomes. This may take a few seconds.`, { parse_mode: 'HTML' });
 
     const results = await resolutionService.runAutoResolution();
 
     if (results.length === 0) {
-      bot.sendMessage(chatId, `✅ <b>Scan Complete.</b>\nNo predictions are ready for resolution yet.`);
+      bot.sendMessage(chatId, `<b>Scan Complete.</b>\nNo predictions are ready for resolution yet.`);
       return;
     }
 
-    let msg = `🎉 <b>${results.length} Predictions Resolved!</b>\n\nWinnings have been distributed on-chain.\n\n`;
+    let msg = `<b>${results.length} Predictions Resolved!</b>\n\nWinnings have been distributed on-chain.\n\n`;
 
     for (const res of results) {
-      msg += `🔹 <b>${res.question}</b>\n`;
+      msg += `<b>${res.question}</b>\n`;
       msg += `Outcome: <b>${res.outcome}</b>\n`;
       msg += `AI Reasoning: <i>${res.reasoning}</i>\n`;
       msg += `TX: <a href="https://testnet.monadexplorer.com/tx/${res.txHash}">View Hash</a>\n\n`;
@@ -1092,4 +1111,132 @@ async function handleAIResolveScan(bot, chatId) {
   }
 }
 
-module.exports = { initBot };
+async function handleAIResolveSingle(bot, chatId, onchainId) {
+  try {
+    bot.sendMessage(chatId, `<b>AI Checking Result for Prediction #${onchainId}...</b>\n\nVerifying outcome via Google Search and triggering on-chain distribution.`, { parse_mode: 'HTML' });
+
+    // We need to find the internal ID first
+    const prediction = await prisma.prediction.findUnique({
+      where: { onchainId: onchainId }
+    });
+
+    if (!prediction) {
+      throw new Error('Prediction not found in database.');
+    }
+
+    // Reuse the resolution service but only for this specific prediction
+    const results = await aiService.checkEventStatus([prediction]);
+    const res = results[0];
+
+    if (res.isFinished && (res.outcome === 'YES' || res.outcome === 'NO')) {
+      const outcomeBool = res.outcome === 'YES';
+      const tx = await blockchain.adminResolveAndDistribute(onchainId, outcomeBool);
+
+      await prisma.prediction.update({
+        where: { id: prediction.id },
+        data: { resolved: true, result: res.outcome }
+      });
+
+      let msg = `🎉 <b>Prediction #${onchainId} Resolved!</b>\n\n`;
+      msg += `Outcome: <b>${res.outcome}</b>\n`;
+      msg += `AI Reasoning: <i>${res.reasoning}</i>\n`;
+      msg += `TX: <a href="https://testnet.monadexplorer.com/tx/${tx.tx.hash}">View Hash</a>`;
+
+      bot.sendMessage(chatId, msg, { parse_mode: 'HTML', disable_web_page_preview: true });
+    } else {
+      bot.sendMessage(chatId, `⏳ <b>Event Inconclusive.</b>\n\nAI Reasoning: <i>${res.reasoning || 'Event still in progress.'}</i>`, { parse_mode: 'HTML' });
+    }
+
+  } catch (err) {
+    console.error('❌ AI Resolve Single failed:', err.message);
+    bot.sendMessage(chatId, `❌ AI Resolution failed: ${err.message}`);
+  }
+}
+
+async function handleAgentProvision(bot, chatId, telegramUserId) {
+  try {
+    const user = await predictionService.findOrCreateUser(String(telegramUserId));
+    
+    const statusMsg = await bot.sendMessage(chatId, `<b>Provisioning OpenClaw Agent...</b>\n\n[ ] Initializing...`, { parse_mode: 'HTML' });
+
+    let logs = '';
+    const updateLogs = async (newLog) => {
+      logs += `> ${newLog}\n`;
+      try {
+        await bot.editMessageText(
+          `<b>Provisioning OpenClaw Agent...</b>\n\n<code>${logs}</code>`,
+          {
+            chat_id: chatId,
+            message_id: statusMsg.message_id,
+            parse_mode: 'HTML'
+          }
+        );
+      } catch (e) {
+        // Ignore rapid update errors
+      }
+    };
+
+    const result = await agentManager.provisionAgent(user.id, updateLogs);
+
+    bot.editMessageText(
+      `<b>Agent Provisioned!</b>\n\n` +
+      `Status: RUNNING\n` +
+      `Container: ${result.containerId.substring(0, 12)}\n` +
+      `Session: SECURE\n\n` +
+      `Your agent is now listening for trending news. You can wait for the 15m cycle or trigger it manually:`,
+      {
+        chat_id: chatId,
+        message_id: statusMsg.message_id,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[{ text: '⚡ Run Agent Now', callback_data: 'agent_run_now' }]]
+        }
+      }
+    );
+
+  } catch (err) {
+    console.error('❌ Agent Provision failed:', err.message);
+    bot.sendMessage(chatId, `Agent Provision failed: ${err.message}`);
+  }
+}
+
+async function handleDecisionNotification(telegramId, predictionId, decision, txHash) {
+  if (!botInstance) return;
+
+  const escapeHTML = (str) => {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  const safeDecision = escapeHTML(decision);
+  const safePredId = escapeHTML(predictionId);
+  const safeTxHash = txHash ? escapeHTML(txHash) : '';
+
+  const msg = `🚀 <b>OpenClaw Agent Action</b>\n\n` +
+    `Your agent evaluated Prediction #${safePredId} and decided to bet <b>${safeDecision}</b>.\n\n` +
+    (safeTxHash 
+      ? `Transaction: <a href="https://testnet.monadexplorer.com/tx/${safeTxHash}">View on MonadExplorer</a>`
+      : `Transaction hash pending...`);
+  
+  try {
+    await botInstance.sendMessage(telegramId, msg, { 
+      parse_mode: 'HTML', 
+      disable_web_page_preview: true 
+    });
+  } catch (err) {
+    console.error('❌ [Bot] Failed to send decision notification:', err.message);
+    // Fallback: send simple text if HTML parsing still fails
+    botInstance.sendMessage(telegramId, `🚀 OpenClaw Agent Action: Your agent bet ${decision} on #${predictionId}`);
+  }
+}
+
+module.exports = { 
+  initBot, 
+  getBot: () => botInstance,
+  handleDecisionNotification 
+};

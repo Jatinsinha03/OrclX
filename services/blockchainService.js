@@ -112,7 +112,7 @@ async function claim(predictionId) {
  */
 async function getPrediction(id) {
   const contract = getContract();
-  const p = await contract.predictions(id);
+  const p = await contract.getPrediction(id);
   return {
     question: p.question,
     stake: p.stake.toString(),
@@ -122,6 +122,7 @@ async function getPrediction(id) {
     totalYes: p.totalYes.toString(),
     totalNo: p.totalNo.toString(),
     createdAt: Number(p.createdAt),
+    tags: p.tags,
     participants: p.participants,
   };
 }

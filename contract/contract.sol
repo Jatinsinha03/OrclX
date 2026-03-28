@@ -247,4 +247,31 @@ contract PredictionChaining {
             }
         }
     }
+
+    function getPrediction(uint256 id) external view returns (
+        string memory question,
+        uint256 stake,
+        address setter,
+        uint8 result,
+        bool resolved,
+        uint256 totalYes,
+        uint256 totalNo,
+        uint256 createdAt,
+        string[] memory tags,
+        address[] memory participants
+    ) {
+        Prediction storage p = predictions[id];
+        return (
+            p.question,
+            p.stake,
+            p.setter,
+            uint8(p.result),
+            p.resolved,
+            p.totalYes,
+            p.totalNo,
+            p.createdAt,
+            p.tags,
+            p.participants
+        );
+    }
 }

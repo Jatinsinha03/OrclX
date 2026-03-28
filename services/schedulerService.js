@@ -9,6 +9,8 @@ const aiService = require('./aiService');
 const predictionService = require('./predictionService');
 const historyService = require('./historyService');
 const resolutionService = require('./resolutionService');
+const agentManager = require('./agentManager');
+const prisma = require('../db/prisma');
 
 /**
  * Initialize the cron scheduler.
@@ -66,11 +68,33 @@ async function executeUserBets(settings) {
   const telegramId = user.telegramId;
 
   try {
-    const predictions = await predictionService.getAllPredictions();
-    const activePredictions = predictions.slice(0, 5); // Take top 5 for analysis
+    const allPredictions = await predictionService.getAllPredictions();
+    const activePredictions = allPredictions
+      .filter(p => !p.resolved)
+      .slice(0, 5); // Take top 5 for analysis
 
     if (activePredictions.length === 0) {
       console.log(`🤖 [AutoTrade] No predictions found for user ${telegramId}`);
+      return;
+    }
+
+    // Check for OpenClaw Agent
+    const agent = await prisma.agent.findUnique({
+      where: { userId: user.id }
+    });
+
+    if (agent && agent.status === 'running') {
+      console.log(`🚀 [AutoTrade] Using OpenClaw agent for user ${telegramId}`);
+      for (const p of activePredictions) {
+        // Dispatch individual tasks to the container
+        await agentManager.dispatchTask(user.id, {
+          onchainId: p.onchainId,
+          question: p.question,
+          context: `Market Stake: ${p.stake}`
+        });
+      }
+      // Update last run timestamp
+      await autoTradingService.markLastRun(user.id);
       return;
     }
 
@@ -95,6 +119,19 @@ async function executeUserBets(settings) {
         );
         
         console.log(`✅ [AutoTrade] Bet successful: ${betRes.txHash}`);
+
+        // Notify User via Telegram
+        try {
+          const botModule = require('../bot');
+          await botModule.handleDecisionNotification(
+            telegramId,
+            ev.id,
+            ev.decision,
+            betRes.txHash
+          );
+        } catch (botErr) {
+          console.warn('⚠️ [AutoTrade] Could not send Telegram notification:', botErr.message);
+        }
       } catch (betErr) {
         console.error(`❌ [AutoTrade] Bet failed for user ${telegramId} on ${ev.id}:`, betErr.message);
       }
@@ -110,4 +147,5 @@ async function executeUserBets(settings) {
 
 module.exports = {
   initScheduler,
+  executeUserBets,
 };

@@ -10,6 +10,7 @@ const config = require('./config');
 const predictionRoutes = require('./routes/predictionRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const aiAutoRoutes = require('./routes/aiAutoRoutes');
+const agentRoutes = require('./routes/agentRoutes');
 const { initBot } = require('./bot');
 const { initScheduler } = require('./services/schedulerService');
 
@@ -32,6 +33,7 @@ app.get('/', (req, res) => {
 // ─── API Routes ─────────────────────────────────────────────────────
 app.use('/', predictionRoutes);
 app.use('/', aiRoutes);
+app.use('/webhooks/agent', agentRoutes);
 
 // ─── Start Server & Bot ─────────────────────────────────────────────
 app.listen(config.PORT, () => {

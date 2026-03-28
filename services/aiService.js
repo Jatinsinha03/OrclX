@@ -153,7 +153,7 @@ async function checkEventStatus(predictions) {
         const data = JSON.parse(jsonMatch[0]);
         results.push({
           predictionId: p.id,
-          onChainId: p.onChainId,
+          onchainId: p.onchainId,
           ...data
         });
       }
@@ -161,7 +161,7 @@ async function checkEventStatus(predictions) {
       console.error(`⚠️ AI Status Check failed for ID ${p.id}:`, err.message);
       results.push({
         predictionId: p.id,
-        onChainId: p.onChainId,
+        onchainId: p.onchainId,
         isFinished: false,
         outcome: 'PENDING',
         reasoning: 'Error checking status: ' + err.message

@@ -20,10 +20,15 @@ async function getSettings(telegramId) {
   if (!user.autoTrading) {
     return await prisma.autoTradingSettings.create({
       data: { userId: user.id },
+      include: { user: true },
     });
   }
 
-  return user.autoTrading;
+  // Reload to ensure user is included if it was just found
+  return await prisma.autoTradingSettings.findUnique({
+    where: { userId: user.id },
+    include: { user: true },
+  });
 }
 
 /**

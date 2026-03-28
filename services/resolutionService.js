@@ -35,11 +35,11 @@ async function runAutoResolution() {
     if (res.isFinished && (res.outcome === 'YES' || res.outcome === 'NO')) {
       try {
         const outcomeBool = res.outcome === 'YES';
-        console.log(`⚖️ [Resolution] Resolving ID ${res.onChainId} (Outcome: ${res.outcome})...`);
+        console.log(`⚖️ [Resolution] Resolving ID ${res.onchainId} (Outcome: ${res.outcome})...`);
 
         // Trigger on-chain resolution and payouts
         const tx = await blockchainService.adminResolveAndDistribute(
-          res.onChainId,
+          res.onchainId,
           outcomeBool
         );
 
@@ -61,7 +61,7 @@ async function runAutoResolution() {
         });
 
       } catch (err) {
-        console.error(`❌ [Resolution] Failed to resolve ID ${res.onChainId}:`, err.message);
+        console.error(`❌ [Resolution] Failed to resolve ID ${res.onchainId}:`, err.message);
       }
     }
   }
